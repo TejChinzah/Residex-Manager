@@ -51,6 +51,7 @@ $initials = strtoupper(substr($user['full_name'],0,1)) . (strpos($user['full_nam
       <a href="dashboard.php" class="nav-item active">
         <span class="icon">📊</span> Dashboard
       </a>
+      <a href="payments.php" class="nav-item"><span class="icon">💳</span> Payments</a>
       <a href="complaints.php" class="nav-item">
         <span class="icon">🔧</span> Complaints
         <?php if ($pending_complaints > 0): ?><span class="nav-badge"><?= $pending_complaints ?></span><?php endif; ?>

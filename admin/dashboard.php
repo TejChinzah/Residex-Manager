@@ -107,6 +107,7 @@ function statusBadge($s) {
         <?php if ($pending_members > 0): ?><span class="nav-badge"><?= $pending_members ?></span><?php endif; ?>
       </a>
       <a href="rooms.php" class="nav-item"><span class="icon">🏠</span> Rooms</a>
+      <a href="payments.php" class="nav-item"><span class="icon">💳</span> Payments</a>
       <a href="complaints.php" class="nav-item">
         <span class="icon">🔧</span> Complaints
         <?php if ($pending_complaints > 0): ?><span class="nav-badge"><?= $pending_complaints ?></span><?php endif; ?>

@@ -54,6 +54,7 @@ $initials = strtoupper(substr($user['full_name'],0,1));
     </div>
     <nav class="sidebar-nav">
       <a href="dashboard.php" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+      <a href="payments.php" class="nav-item"><span class="icon">💳</span> Payments</a>
       <a href="complaints.php" class="nav-item"><span class="icon">🔧</span> Complaints</a>
       <a href="profile.php" class="nav-item active"><span class="icon">👤</span> My Profile</a>
       <a href="announcements.php" class="nav-item"><span class="icon">📢</span> Announcements</a>

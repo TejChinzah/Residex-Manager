@@ -79,6 +79,7 @@ $complaint_items_list = [
     <nav class="sidebar-nav">
       <div class="nav-section-label">Main</div>
       <a href="dashboard.php" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+      <a href="payments.php" class="nav-item"><span class="icon">💳</span> Payments</a>
       <a href="complaints.php" class="nav-item active"><span class="icon">🔧</span> Complaints</a>
       <a href="profile.php" class="nav-item"><span class="icon">👤</span> My Profile</a>
       <div class="nav-section-label">Info</div>
