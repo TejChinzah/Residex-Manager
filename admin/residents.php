@@ -80,9 +80,9 @@ $rooms = $db->query("SELECT * FROM rooms ORDER BY room_number");
     <div class="nav-section-label">Analytics</div>
       <a href="dashboard.php" class="nav-item"><span class="icon">📊</span> Dashboard</a>
       <div class="nav-section-label">Management</div>
-      <a href="payments.php" class="nav-item"><span class="icon">💳</span> Payments</a>
       <a href="residents.php" class="nav-item active"><span class="icon">👥</span> Residents</a>
       <a href="rooms.php" class="nav-item"><span class="icon">🏠</span> Rooms</a>
+      <a href="payments.php" class="nav-item"><span class="icon">💳</span> Payments</a>
       <a href="complaints.php" class="nav-item"><span class="icon">🔧</span> Complaints</a>
       <a href="announcements.php" class="nav-item"><span class="icon">📢</span> Announcements</a>
     </nav>

@@ -28,7 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($user['status'] === 'pending') {
                     $_SESSION['user_pending'] = true;
                 }
-                redirect(SITE_URL . '/user/dashboard.php');
+                // If user came from a payment link, send them back there
+                if (isset($_SESSION['redirect_after_login'])) {
+                $redirect = $_SESSION['redirect_after_login'];
+                unset($_SESSION['redirect_after_login']);
+                redirect($redirect);
+                }
+              redirect(SITE_URL . '/user/dashboard.php');
             }
         } else {
             $error = 'Invalid email or password.';
@@ -95,5 +101,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </div>
 </div>
+<footer class="dev-footer no-sidebar">
+  <div class="dev-footer-inner">
+    <span>&copy; <?php echo date("Y"); ?> Residex Manager</span>
+    <span class="dot">&#9679;</span>
+    <span>Designed &amp; Developed with</span>
+    <span class="heart">&#9829;</span>
+    <span>by <span class="dev-name">Tej Chinzah</span></span>
+  </div>
+</footer>
 </body>
 </html>

@@ -44,9 +44,9 @@ $anns = $db->query("SELECT * FROM announcements ORDER BY created_at DESC");
     <div class="nav-section-label">Analytics</div>
       <a href="dashboard.php" class="nav-item"><span class="icon">📊</span> Dashboard</a>
       <div class="nav-section-label">Management</div>
-      <a href="payments.php" class="nav-item"><span class="icon">💳</span> Payments</a>
       <a href="residents.php" class="nav-item"><span class="icon">👥</span> Residents</a>
       <a href="rooms.php" class="nav-item"><span class="icon">🏠</span> Rooms</a>
+      <a href="payments.php" class="nav-item"><span class="icon">💳</span> Payments</a>
       <a href="complaints.php" class="nav-item"><span class="icon">🔧</span> Complaints</a>
       <a href="announcements.php" class="nav-item active"><span class="icon">📢</span> Announcements</a>
     </nav>
@@ -120,5 +120,14 @@ $anns = $db->query("SELECT * FROM announcements ORDER BY created_at DESC");
     </div>
   </div>
 </div>
+<footer class="dev-footer">
+  <div class="dev-footer-inner">
+    <span>&copy; <?php echo date("Y"); ?> Residex Manager</span>
+    <span class="dot">&#9679;</span>
+    <span>Designed &amp; Developed</span>
+    <span>by <span class="dev-name">Tej Chinzah</span></span>
+    <span class="heart">&#9829;</span>
+  </div>
+</footer>
 </body>
 </html>

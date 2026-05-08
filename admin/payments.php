@@ -4,28 +4,32 @@ requireLogin('admin');
 
 $db = getDB();
 $admin_id = $_SESSION['admin_id'];
-$success = '';
-$error = '';
+$success  = '';
+$error    = '';
 
-// ---- Handle Create Payment Demand ----
+$msg = sanitize($_GET['msg'] ?? '');
+if ($msg === 'created')   $success = 'Payment demand created successfully!';
+if ($msg === 'cancelled') $success = 'Payment demand cancelled.';
+if ($msg === 'overdue')   $success = 'Overdue payments marked successfully.';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
+    // CREATE DEMAND
     if ($_POST['action'] === 'create_demand') {
-        $user_id      = intval($_POST['user_id']);
-        $payment_type = sanitize($_POST['payment_type']);
+        $user_id       = intval($_POST['user_id']);
+        $payment_type  = sanitize($_POST['payment_type']);
         $payment_label = sanitize($_POST['payment_label']);
-        $amount       = floatval($_POST['amount']);
-        $due_date     = sanitize($_POST['due_date']);
-        $month        = sanitize($_POST['month']);
-        $year         = intval($_POST['year']);
-        $description  = sanitize($_POST['description']);
+        $amount        = floatval($_POST['amount']);
+        $due_date      = sanitize($_POST['due_date']);
+        $month         = sanitize($_POST['month']);
+        $year          = intval($_POST['year']);
+        $description   = sanitize($_POST['description']);
 
         if (!$user_id || !$payment_type || !$amount || !$due_date || !$month || !$year) {
             $error = 'Please fill all required fields.';
         } elseif ($amount <= 0) {
             $error = 'Amount must be greater than 0.';
         } else {
-            // Generate secure QR token and hash
             $qr_token    = bin2hex(random_bytes(24));
             $secure_hash = hash('sha256', $qr_token . $user_id . $amount . $admin_id . time());
 
@@ -37,36 +41,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $amount, $due_date, $month, $year, $description, $qr_token, $secure_hash);
 
             if ($stmt->execute()) {
-                $success = 'Payment demand created successfully!';
+                header('Location: payments.php?msg=created');
+                exit();
             } else {
                 $error = 'Failed to create demand: ' . $db->error;
             }
         }
     }
 
+    // CANCEL DEMAND
     if ($_POST['action'] === 'cancel_demand') {
         $did = intval($_POST['demand_id']);
         $db->query("UPDATE payment_demands SET status='cancelled' WHERE id=$did AND admin_id=$admin_id");
-        $success = 'Payment demand cancelled.';
+        header('Location: payments.php?msg=cancelled');
+        exit();
     }
 
+    // MARK OVERDUE
     if ($_POST['action'] === 'mark_overdue') {
         $db->query("UPDATE payment_demands SET status='overdue' WHERE status='unpaid' AND due_date < CURDATE()");
-        $success = 'Overdue payments updated.';
+        header('Location: payments.php?msg=overdue');
+        exit();
     }
 }
 
-// Fetch all users for dropdown
+// ---- Fetch users for dropdown ----
 $users = $db->query("SELECT u.id, u.full_name, u.student_id, u.email, r.room_number
     FROM users u LEFT JOIN rooms r ON u.room_id = r.id
     WHERE u.status='active' ORDER BY u.full_name");
 
-// Fetch all demands with user info
+// ---- Fetch demands ----
 $filter_status = sanitize($_GET['status'] ?? 'all');
 $filter_user   = intval($_GET['user_id'] ?? 0);
 $where = "1=1";
 if ($filter_status !== 'all') $where .= " AND pd.status='$filter_status'";
-if ($filter_user) $where .= " AND pd.user_id=$filter_user";
+if ($filter_user)             $where .= " AND pd.user_id=$filter_user";
 
 $demands = $db->query("SELECT pd.*, u.full_name, u.student_id, u.email, r.room_number,
     pt.transaction_ref, pt.paid_at, pt.receipt_number
@@ -77,25 +86,24 @@ $demands = $db->query("SELECT pd.*, u.full_name, u.student_id, u.email, r.room_n
     WHERE $where
     ORDER BY pd.created_at DESC");
 
-// Stats
+// ---- Stats ----
 $total_demanded  = $db->query("SELECT COALESCE(SUM(amount),0) as t FROM payment_demands WHERE status != 'cancelled'")->fetch_assoc()['t'];
 $total_collected = $db->query("SELECT COALESCE(SUM(amount),0) as t FROM payment_demands WHERE status='paid'")->fetch_assoc()['t'];
-$total_pending   = $db->query("SELECT COALESCE(SUM(amount),0) as t FROM payment_demands WHERE status='unpaid'")->fetch_assoc()['t'];
-$total_overdue   = $db->query("SELECT COUNT(*) as c FROM payment_demands WHERE status='overdue'")->fetch_assoc()['c'];
-
+$total_pending   = $db->query("SELECT COALESCE(SUM(amount),0) as t FROM payment_demands WHERE status IN ('unpaid','overdue')")->fetch_assoc()['t'];
+$total_overdue   = $db->query("SELECT COUNT(*) as c FROM payment_demands WHERE status='overdue' OR (status='unpaid' AND due_date < CURDATE())")->fetch_assoc()['c'];
 $type_labels = [
-    'room_rent'          => '🏠 Room Rent',
-    'mess_fee'           => '🍽️ Mess Fee',
-    'maintenance_fee'    => '🔧 Maintenance Fee',
-    'security_deposit'   => '🔒 Security Deposit',
-    'fine'               => '⚠️ Fine',
-    'other'              => '📋 Other',
+    'room_rent'        => '🏠 Room Rent',
+    'mess_fee'         => '🍽️ Mess Fee',
+    'maintenance_fee'  => '🔧 Maintenance Fee',
+    'security_deposit' => '🔒 Security Deposit',
+    'fine'             => '⚠️ Fine',
+    'other'            => '📋 Other',
 ];
 
 function statusBadgePay($s) {
-    $map = ['unpaid'=>'badge-warning','paid'=>'badge-success','overdue'=>'badge-danger','cancelled'=>'badge-muted'];
-    $ico = ['unpaid'=>'⏳','paid'=>'✅','overdue'=>'🔴','cancelled'=>'❌'];
-    $cls = $map[$s] ?? 'badge-muted';
+    $map   = ['unpaid'=>'badge-warning','paid'=>'badge-success','overdue'=>'badge-danger','cancelled'=>'badge-muted'];
+    $ico   = ['unpaid'=>'⏳','paid'=>'✅','overdue'=>'🔴','cancelled'=>'❌'];
+    $cls   = $map[$s]  ?? 'badge-muted';
     $label = ($ico[$s] ?? '') . ' ' . ucfirst($s);
     return "<span class='badge $cls'>$label</span>";
 }
@@ -108,7 +116,6 @@ function statusBadgePay($s) {
   <title>Payments - Residex Admin</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <style>
-    .amount-big { font-family:'Syne',sans-serif; font-weight:800; font-size:1.6rem; letter-spacing:-0.03em; }
     .rupee { font-size:1rem; color:var(--text-2); margin-right:2px; }
     .pay-type-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; font-size:0.75rem; font-weight:600; background:rgba(108,99,255,0.1); color:var(--accent); border:1px solid rgba(108,99,255,0.2); }
     .qr-mini { width:36px; height:36px; background:white; border-radius:6px; padding:3px; cursor:pointer; transition:transform 0.2s; }
@@ -119,6 +126,7 @@ function statusBadgePay($s) {
 </head>
 <body>
 <div class="app-wrapper">
+
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-logo">
@@ -131,9 +139,9 @@ function statusBadgePay($s) {
       <div class="nav-section-label">Analytics</div>
       <a href="dashboard.php" class="nav-item"><span class="icon">📊</span> Dashboard</a>
       <div class="nav-section-label">Management</div>
-      <a href="payments.php" class="nav-item active"><span class="icon">💳</span> Payments</a>
       <a href="residents.php" class="nav-item"><span class="icon">👥</span> Residents</a>
       <a href="rooms.php" class="nav-item"><span class="icon">🏠</span> Rooms</a>
+      <a href="payments.php" class="nav-item active"><span class="icon">💳</span> Payments</a>
       <a href="complaints.php" class="nav-item"><span class="icon">🔧</span> Complaints</a>
       <a href="announcements.php" class="nav-item"><span class="icon">📢</span> Announcements</a>
     </nav>
@@ -147,6 +155,7 @@ function statusBadgePay($s) {
     </div>
   </aside>
 
+  <!-- Main Content -->
   <div class="main-content">
     <div class="topbar">
       <div class="topbar-title">
@@ -165,8 +174,13 @@ function statusBadgePay($s) {
     </div>
 
     <div class="page-body">
-      <?php if ($success): ?><div class="alert alert-success">✅ <?= $success ?></div><?php endif; ?>
-      <?php if ($error): ?><div class="alert alert-error">⚠️ <?= $error ?></div><?php endif; ?>
+
+      <?php if ($success): ?>
+        <div class="alert alert-success">✅ <?= htmlspecialchars($success) ?></div>
+      <?php endif; ?>
+      <?php if ($error): ?>
+        <div class="alert alert-error">⚠️ <?= htmlspecialchars($error) ?></div>
+      <?php endif; ?>
 
       <!-- Stats -->
       <div class="stats-grid" style="margin-bottom:28px;">
@@ -201,16 +215,16 @@ function statusBadgePay($s) {
         <div class="filter-bar">
           <form method="GET" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <select name="status" class="form-select" style="width:auto;">
-              <option value="all" <?= $filter_status==='all'?'selected':'' ?>>All Status</option>
-              <option value="unpaid" <?= $filter_status==='unpaid'?'selected':'' ?>>⏳ Unpaid</option>
-              <option value="paid" <?= $filter_status==='paid'?'selected':'' ?>>✅ Paid</option>
-              <option value="overdue" <?= $filter_status==='overdue'?'selected':'' ?>>🔴 Overdue</option>
-              <option value="cancelled" <?= $filter_status==='cancelled'?'selected':'' ?>>❌ Cancelled</option>
+              <option value="all"       <?= $filter_status==='all'       ? 'selected':'' ?>>All Status</option>
+              <option value="unpaid"    <?= $filter_status==='unpaid'    ? 'selected':'' ?>>⏳ Unpaid</option>
+              <option value="paid"      <?= $filter_status==='paid'      ? 'selected':'' ?>>✅ Paid</option>
+              <option value="overdue"   <?= $filter_status==='overdue'   ? 'selected':'' ?>>🔴 Overdue</option>
+              <option value="cancelled" <?= $filter_status==='cancelled' ? 'selected':'' ?>>❌ Cancelled</option>
             </select>
             <select name="user_id" class="form-select" style="width:auto;">
               <option value="0">All Residents</option>
               <?php $users->data_seek(0); while ($u = $users->fetch_assoc()): ?>
-                <option value="<?= $u['id'] ?>" <?= $filter_user==$u['id']?'selected':'' ?>>
+                <option value="<?= $u['id'] ?>" <?= $filter_user==$u['id'] ? 'selected':'' ?>>
                   <?= htmlspecialchars($u['full_name']) ?> (<?= $u['student_id'] ?>)
                 </option>
               <?php endwhile; ?>
@@ -247,15 +261,17 @@ function statusBadgePay($s) {
             </thead>
             <tbody>
               <?php if ($demands->num_rows === 0): ?>
-                <tr><td colspan="10" style="text-align:center; padding:40px; color:var(--text-3);">
-                  No payment demands found. Create one using the button above.
-                </td></tr>
+                <tr>
+                  <td colspan="10" style="text-align:center; padding:40px; color:var(--text-3);">
+                    No payment demands found. Click <strong>+ New Payment Demand</strong> above to create one.
+                  </td>
+                </tr>
               <?php else: while ($d = $demands->fetch_assoc()): ?>
               <tr>
                 <td style="color:var(--text-3); font-size:0.8rem;">#<?= $d['id'] ?></td>
                 <td>
                   <div style="font-weight:600;"><?= htmlspecialchars($d['full_name']) ?></div>
-                  <div style="font-size:0.72rem; color:var(--text-3);"><?= $d['student_id'] ?></div>
+                  <div style="font-size:0.72rem; color:var(--text-3);"><?= htmlspecialchars($d['student_id']) ?></div>
                 </td>
                 <td><span class="badge badge-muted">Room <?= $d['room_number'] ?? 'N/A' ?></span></td>
                 <td>
@@ -274,7 +290,8 @@ function statusBadgePay($s) {
                     <div style="color:var(--accent3); font-size:0.7rem;">⚠️ Overdue</div>
                   <?php endif; ?>
                 </td>
-                <td><?= statusBadgePay($d['status']) ?>
+                <td>
+                  <?= statusBadgePay($d['status']) ?>
                   <?php if ($d['paid_at']): ?>
                     <div style="font-size:0.68rem; color:var(--text-3); margin-top:3px;">
                       <?= date('d M Y g:i A', strtotime($d['paid_at'])) ?>
@@ -285,7 +302,7 @@ function statusBadgePay($s) {
                   <?php if ($d['status'] !== 'cancelled' && $d['status'] !== 'paid'): ?>
                     <img class="qr-mini"
                       src="https://api.qrserver.com/v1/create-qr-code/?size=36x36&data=<?= urlencode(SITE_URL . '/user/pay.php?token=' . $d['qr_token']) ?>"
-                      onclick="showQRModal('<?= $d['qr_token'] ?>', '<?= htmlspecialchars($d['full_name'], ENT_QUOTES) ?>', '<?= number_format($d['amount'],2) ?>', '<?= $type_labels[$d['payment_type']] ?>')"
+                      onclick="showQRModal('<?= $d['qr_token'] ?>','<?= htmlspecialchars($d['full_name'], ENT_QUOTES) ?>','<?= number_format($d['amount'],2) ?>','<?= addslashes($type_labels[$d['payment_type']] ?? '') ?>')"
                       title="View QR Code" alt="QR">
                   <?php elseif ($d['status'] === 'paid'): ?>
                     <span style="font-size:0.75rem; color:var(--accent2);">✅ Paid</span>
@@ -301,7 +318,7 @@ function statusBadgePay($s) {
                     <?php endif; ?>
                     <?php if ($d['status'] === 'unpaid' || $d['status'] === 'overdue'): ?>
                       <form method="POST" onsubmit="return confirm('Cancel this demand?')">
-                        <input type="hidden" name="action" value="cancel_demand">
+                        <input type="hidden" name="action"    value="cancel_demand">
                         <input type="hidden" name="demand_id" value="<?= $d['id'] ?>">
                         <button class="btn btn-outline btn-sm" style="color:var(--accent3);">❌ Cancel</button>
                       </form>
@@ -314,11 +331,12 @@ function statusBadgePay($s) {
           </table>
         </div>
       </div>
-    </div>
-  </div>
-</div>
 
-<!-- ===================== CREATE DEMAND MODAL ===================== -->
+    </div><!-- /page-body -->
+  </div><!-- /main-content -->
+</div><!-- /app-wrapper -->
+
+<!-- ===== CREATE DEMAND MODAL ===== -->
 <div class="modal-overlay" id="createModal">
   <div class="modal" style="max-width:560px;">
     <div class="modal-header">
@@ -368,8 +386,7 @@ function statusBadgePay($s) {
         </div>
         <div class="form-group">
           <label class="form-label">Due Date *</label>
-          <input type="date" name="due_date" class="form-input" required
-            min="<?= date('Y-m-d') ?>">
+          <input type="date" name="due_date" class="form-input" required min="<?= date('Y-m-d') ?>">
         </div>
       </div>
 
@@ -378,19 +395,19 @@ function statusBadgePay($s) {
           <label class="form-label">For Month *</label>
           <select name="month" class="form-select" required>
             <?php
-            $months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            $months   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
             $curMonth = date('F');
             foreach ($months as $m):
             ?>
-              <option value="<?= $m ?>" <?= $m===$curMonth?'selected':'' ?>><?= $m ?></option>
+              <option value="<?= $m ?>" <?= $m === $curMonth ? 'selected' : '' ?>><?= $m ?></option>
             <?php endforeach; ?>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label">Year *</label>
           <select name="year" class="form-select" required>
-            <?php for ($y = date('Y'); $y <= date('Y')+1; $y++): ?>
-              <option value="<?= $y ?>" <?= $y==date('Y')?'selected':'' ?>><?= $y ?></option>
+            <?php for ($y = date('Y'); $y <= date('Y') + 1; $y++): ?>
+              <option value="<?= $y ?>" <?= $y == date('Y') ? 'selected' : '' ?>><?= $y ?></option>
             <?php endfor; ?>
           </select>
         </div>
@@ -404,50 +421,48 @@ function statusBadgePay($s) {
 
       <div style="background:rgba(108,99,255,0.08); border:1px solid rgba(108,99,255,0.2); border-radius:10px; padding:14px; margin-bottom:16px; font-size:0.82rem; color:var(--text-2);">
         <strong style="color:var(--accent);">ℹ️ How it works:</strong><br>
-        A secure QR code will be generated. The resident can scan or click it to pay.
-        The exact amount you set will be charged — residents cannot modify it.
-        Payment is marked instantly on scan.
+        A secure QR code is generated. The resident scans or clicks it to pay.
+        The exact amount you set is charged — residents cannot modify it.
+        Payment is confirmed instantly on scan.
       </div>
 
       <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:14px;">
-        🚀 Create Demand & Generate QR
+        🚀 Create Demand &amp; Generate QR
       </button>
     </form>
   </div>
 </div>
 
-<!-- ===================== QR VIEW MODAL ===================== -->
+<!-- ===== QR VIEW MODAL ===== -->
 <div class="modal-overlay" id="qrModal">
   <div class="modal" style="max-width:400px; text-align:center;">
     <div class="modal-header">
       <h3>📱 QR Payment Code</h3>
       <button class="modal-close" onclick="document.getElementById('qrModal').classList.remove('open')">✕</button>
     </div>
-    <div id="qrModalBody">
-      <div id="qrResidentName" style="font-weight:700; font-size:1.1rem; margin-bottom:4px;"></div>
-      <div id="qrTypeName" style="color:var(--text-2); font-size:0.85rem; margin-bottom:12px;"></div>
-      <div id="qrAmount" style="font-family:'Syne',sans-serif; font-weight:800; font-size:2rem; color:var(--accent2); margin-bottom:20px;"></div>
-      <div style="background:white; border-radius:16px; padding:16px; display:inline-block; margin-bottom:16px;">
-        <img id="qrCodeImg" src="" width="200" height="200" alt="QR Code">
-      </div>
-      <p style="font-size:0.8rem; color:var(--text-2); margin-bottom:16px;">
-        Share this QR code with the resident. They can scan it to complete payment instantly.
-      </p>
-      <div id="qrLink" style="background:var(--bg-glass); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:0.72rem; color:var(--text-3); word-break:break-all; margin-bottom:16px;"></div>
-      <button class="btn btn-outline btn-sm" onclick="copyPayLink()">📋 Copy Payment Link</button>
+    <div id="qrResidentName" style="font-weight:700; font-size:1.1rem; margin-bottom:4px;"></div>
+    <div id="qrTypeName"     style="color:var(--text-2); font-size:0.85rem; margin-bottom:12px;"></div>
+    <div id="qrAmount"       style="font-family:'Syne',sans-serif; font-weight:800; font-size:2rem; color:var(--accent2); margin-bottom:20px;"></div>
+    <div style="background:white; border-radius:16px; padding:16px; display:inline-block; margin-bottom:16px;">
+      <img id="qrCodeImg" src="" width="200" height="200" alt="QR Code">
     </div>
+    <p style="font-size:0.8rem; color:var(--text-2); margin-bottom:16px;">
+      Share this QR code with the resident. They can scan it to complete payment instantly.
+    </p>
+    <div id="qrLink" style="background:var(--bg-glass); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:0.72rem; color:var(--text-3); word-break:break-all; margin-bottom:16px;"></div>
+    <button class="btn btn-outline btn-sm" onclick="copyPayLink()">📋 Copy Payment Link</button>
   </div>
 </div>
 
 <script>
 function updateLabel(type) {
   const labels = {
-    'room_rent': 'Room Rent - <?= date("F Y") ?>',
-    'mess_fee': 'Mess Fee - <?= date("F Y") ?>',
-    'maintenance_fee': 'Maintenance Fee - <?= date("F Y") ?>',
+    'room_rent':        'Room Rent - <?= date("F Y") ?>',
+    'mess_fee':         'Mess Fee - <?= date("F Y") ?>',
+    'maintenance_fee':  'Maintenance Fee - <?= date("F Y") ?>',
     'security_deposit': 'Security Deposit',
-    'fine': 'Fine - <?= date("F Y") ?>',
-    'other': ''
+    'fine':             'Fine - <?= date("F Y") ?>',
+    'other':            ''
   };
   document.getElementById('paymentLabel').value = labels[type] || '';
 }
@@ -457,21 +472,31 @@ let currentPayLink = '';
 function showQRModal(token, name, amount, type) {
   const baseUrl = '<?= SITE_URL ?>/user/pay.php?token=' + token;
   currentPayLink = baseUrl;
-  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(baseUrl);
-
+  const qrUrl   = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(baseUrl);
   document.getElementById('qrResidentName').textContent = name;
-  document.getElementById('qrTypeName').textContent = type;
-  document.getElementById('qrAmount').textContent = '₹' + amount;
-  document.getElementById('qrCodeImg').src = qrUrl;
-  document.getElementById('qrLink').textContent = baseUrl;
+  document.getElementById('qrTypeName').textContent     = type;
+  document.getElementById('qrAmount').textContent       = '₹' + amount;
+  document.getElementById('qrCodeImg').src              = qrUrl;
+  document.getElementById('qrLink').textContent         = baseUrl;
   document.getElementById('qrModal').classList.add('open');
 }
 
 function copyPayLink() {
-  navigator.clipboard.writeText(currentPayLink).then(() => {
+  navigator.clipboard.writeText(currentPayLink).then(function() {
     alert('Payment link copied to clipboard!');
   });
 }
 </script>
+
+<!-- Footer -->
+<footer class="dev-footer">
+  <div class="dev-footer-inner">
+    <span>&copy; <?php echo date("Y"); ?> Residex Manager</span>
+    <span class="dot">&#9679;</span>
+    <span>Designed &amp; Developed with</span>
+    <span class="heart">&#9829;</span>
+    <span>by <span class="dev-name">Tej Chinzah</span></span>
+  </div>
+</footer>
 </body>
 </html>

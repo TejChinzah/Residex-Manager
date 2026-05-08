@@ -1,8 +1,12 @@
 <?php
 require_once '../includes/config.php';
 
-// This page works both logged-in and via QR token link
-if (session_status() === PHP_SESSION_NONE) session_start();
+// Force login before payment
+if (!isLoggedIn('user')) {
+    // Save the payment URL so we redirect back after login
+    $_SESSION['redirect_after_login'] = SITE_URL . '/user/pay.php?token=' . urlencode($_GET['token'] ?? '');
+    redirect(SITE_URL . '/user/login.php');
+}
 
 $db = getDB();
 $token   = sanitize($_GET['token'] ?? '');

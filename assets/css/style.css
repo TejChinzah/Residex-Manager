@@ -218,8 +218,8 @@ h1,h2,h3,h4,h5,h6 {
 
 .page-body {
   padding: 32px;
+  padding-bottom: 60px;
 }
-
 /* ---- CARDS ---- */
 .card {
   background: var(--bg-card);
@@ -830,3 +830,53 @@ tbody tr:last-child td { border-bottom: none; }
 .gap-3 { gap: 12px; }
 .justify-between { justify-content: space-between; }
 .w-full { width: 100%; }
+
+/* Footer - Designed & Developed by Tej Chinzah */
+.dev-footer {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 260px;
+  width: calc(100% - 260px);
+  z-index: 99;
+}
+.dev-footer-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.78rem;
+  color: var(--text-3);
+}
+.dev-footer-inner .heart {
+  color: #ff6b6b;
+  animation: heartbeat 1.4s ease-in-out infinite;
+}
+@keyframes heartbeat {
+  0%,100% { transform: scale(1); }
+  14%      { transform: scale(1.25); }
+  28%      { transform: scale(1); }
+  42%      { transform: scale(1.15); }
+  70%      { transform: scale(1); }
+}
+.dev-footer-inner .dev-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.82rem;
+  background: linear-gradient(135deg, #6c63ff, #00d4aa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.dev-footer-inner .dot { color: var(--text-3); font-size: 0.6rem; }
+.dev-footer.no-sidebar {
+  left: 0;
+  width: 100%;
+}
+@media (max-width: 1024px) { .dev-footer { margin-left: 0; } }
