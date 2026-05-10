@@ -204,5 +204,14 @@ $floor_filter = intval($_GET['floor'] ?? 0);
     </form>
   </div>
 </div>
+<footer class="dev-footer no-sidebar">
+  <div class="dev-footer-inner">
+    <span>&copy; <?php echo date("Y"); ?> Residex Manager</span>
+    <span class="dot">&#9679;</span>
+    <span>Designed &amp; Developed</span>
+    <span>by    <span class="dev-name"> Tej Chinzah</span></span>
+    <span class="heart">&#9829;</span>
+  </div>
+</footer>
 </body>
 </html>

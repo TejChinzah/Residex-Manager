@@ -127,7 +127,6 @@ $rooms = $db->query("SELECT * FROM rooms WHERE status != 'full' ORDER BY room_nu
             <option value="">Select Gender</option>
             <option value="male" <?= ($_POST['gender'] ?? '') === 'male' ? 'selected' : '' ?>>Male</option>
             <option value="female" <?= ($_POST['gender'] ?? '') === 'female' ? 'selected' : '' ?>>Female</option>
-            <option value="other" <?= ($_POST['gender'] ?? '') === 'other' ? 'selected' : '' ?>>Other</option>
           </select>
         </div>
         <div class="form-group">
@@ -230,6 +229,16 @@ document.querySelector('input[name="student_id"]').addEventListener('blur', func
     }
 });
 </script>
+
+<footer class="dev-footer no-sidebar">
+  <div class="dev-footer-inner">
+    <span>&copy; <?php echo date("Y"); ?> Residex Manager</span>
+    <span class="dot">&#9679;</span>
+    <span>Designed &amp; Developed</span>
+    <span>by<span class="dev-name">Tej Chinzah</span></span>
+    <span class="heart">&#9829;</span>
+  </div>
+</footer>
 
 </body>
 </html>

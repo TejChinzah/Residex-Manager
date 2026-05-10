@@ -401,7 +401,7 @@ function statusBadge($s) {
     </div>
   </div>
 </div>
-<footer class="dev-footer">
+<footer class="dev-footer no-sidebar">
   <div class="dev-footer-inner">
     <span>&copy; <?php echo date("Y"); ?> Residex Manager</span>
     <span class="dot">&#9679;</span>

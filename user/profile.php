@@ -53,10 +53,12 @@ $initials = strtoupper(substr($user['full_name'],0,1));
       </div>
     </div>
     <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
       <a href="dashboard.php" class="nav-item"><span class="icon">📊</span> Dashboard</a>
       <a href="payments.php" class="nav-item"><span class="icon">💳</span> Payments</a>
       <a href="complaints.php" class="nav-item"><span class="icon">🔧</span> Complaints</a>
       <a href="profile.php" class="nav-item active"><span class="icon">👤</span> My Profile</a>
+      <div class="nav-section-label">Info</div>
       <a href="announcements.php" class="nav-item"><span class="icon">📢</span> Announcements</a>
     </nav>
     <div class="sidebar-user">
@@ -180,5 +182,14 @@ $initials = strtoupper(substr($user['full_name'],0,1));
     </div>
   </div>
 </div>
+<footer class="dev-footer no-sidebar">
+  <div class="dev-footer-inner">
+    <span>&copy; <?php echo date("Y"); ?> Residex Manager</span>
+    <span class="dot">&#9679;</span>
+    <span>Designed &amp; Developed with</span>
+    <span class="heart">&#9829;</span>
+    <span>by <span class="dev-name">Tej Chinzah</span></span>
+  </div>
+</footer>
 </body>
 </html>

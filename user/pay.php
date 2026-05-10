@@ -454,5 +454,14 @@ function confirmPayment() {
   document.getElementById('confirmModal').classList.add('open');
 }
 </script>
+<footer class="dev-footer no-sidebar">
+  <div class="dev-footer-inner">
+    <span>&copy; <?php echo date("Y"); ?> Residex Manager</span>
+    <span class="dot">&#9679;</span>
+    <span>Designed &amp; Developed with</span>
+    <span class="heart">&#9829;</span>
+    <span>by <span class="dev-name">Tej Chinzah</span></span>
+  </div>
+</footer>
 </body>
 </html>
