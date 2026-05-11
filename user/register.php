@@ -15,6 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $room_id          = intval($_POST['room_id'] ?? 0);
     $address          = sanitize($_POST['address'] ?? '');
     $emergency_contact = sanitize($_POST['emergency_contact'] ?? '');
+    $diet_type         = sanitize($_POST['diet_type'] ?? 'any');
+    $non_veg_pref      = isset($_POST['non_veg_preference']) ? implode(',', array_map('sanitize', $_POST['non_veg_preference'])) : '';
 
     if (!$full_name || !$email || !$phone || !$student_id || !$password || !$gender || !$room_id) {
         $error = 'Please fill in all required fields.';
@@ -44,8 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $bed = $room['occupied'] + 1;
                 $hashed = password_hash($password, PASSWORD_BCRYPT);
 
-                $stmt = $db->prepare("INSERT INTO users (full_name, email, phone, student_id, password, room_id, bed_number, gender, address, emergency_contact) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param('ssssssisss', $full_name, $email, $phone, $student_id, $hashed, $room_id, $bed, $gender, $address, $emergency_contact);
+              // Check if diet columns exist
+                $has_diet = $db->query("SHOW COLUMNS FROM users LIKE 'diet_type'")->num_rows > 0;
+
+                if ($has_diet) {
+                   $stmt = $db->prepare("INSERT INTO users (full_name, email, phone, student_id, password, room_id, bed_number, gender, address, emergency_contact, diet_type, non_veg_preference) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                   $stmt->bind_param('ssssssisssss', $full_name, $email, $phone, $student_id, $hashed, $room_id, $bed, $gender, $address, $emergency_contact, $diet_type, $non_veg_pref);
+                } else {
+                   $stmt = $db->prepare("INSERT INTO users (full_name, email, phone, student_id, password, room_id, bed_number, gender, address, emergency_contact) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param('ssssssisss', $full_name, $email, $phone, $student_id, $hashed, $room_id, $bed, $gender, $address, $emergency_contact);
+                }
 
                 if ($stmt->execute()) {
                     $db->query("UPDATE rooms SET occupied = occupied + 1, status = CASE WHEN occupied+1 >= capacity THEN 'full' ELSE 'available' END WHERE id=$room_id");
@@ -70,6 +80,28 @@ $rooms = $db->query("SELECT * FROM rooms WHERE status != 'full' ORDER BY room_nu
   <title>Register - Residex Manager</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <style>
+    .diet-reg-opt input[type=radio] { display:none; }
+.diet-reg-opt label {
+  display:inline-block; padding:9px 18px;
+  border-radius:99px; border:1px solid var(--border);
+  cursor:pointer; font-size:0.85rem; font-weight:600;
+  transition:all 0.2s; color:var(--text-2);
+}
+.diet-reg-opt input:checked + label {
+  background:rgba(0,212,170,0.12);
+  border-color:var(--accent2); color:var(--accent2);
+}
+.nveg-reg-opt input[type=checkbox] { display:none; }
+.nveg-reg-opt label {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 12px; border-radius:10px;
+  border:1px solid var(--border); cursor:pointer;
+  font-size:0.82rem; transition:all 0.2s; color:var(--text-2);
+}
+.nveg-reg-opt input:checked + label {
+  background:rgba(255,107,107,0.1);
+  border-color:var(--accent3); color:var(--text-1);
+}
     .auth-page { align-items: flex-start; padding: 40px 20px; }
     .auth-card { max-width: 600px; }
     .bg-circle-1 { width: 500px; height: 500px; top: -200px; right: -200px; background: var(--accent); }
@@ -112,7 +144,7 @@ $rooms = $db->query("SELECT * FROM rooms WHERE status != 'full' ORDER BY room_nu
       <div class="form-grid-2">
         <div class="form-group">
           <label class="form-label">Email Address *</label>
-          <input type="email" name="email" class="form-input" placeholder="name@gmail.com" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
+          <input type="email" name="email" class="form-input" placeholder="Eg. tejchinzah1999@gmail.com" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
         </div>
         <div class="form-group">
           <label class="form-label">Phone Number *</label>
@@ -129,6 +161,7 @@ $rooms = $db->query("SELECT * FROM rooms WHERE status != 'full' ORDER BY room_nu
             <option value="female" <?= ($_POST['gender'] ?? '') === 'female' ? 'selected' : '' ?>>Female</option>
           </select>
         </div>
+      
         <div class="form-group">
           <label class="form-label">Room Preference *</label>
           <select name="room_id" class="form-select" required>
@@ -145,15 +178,62 @@ $rooms = $db->query("SELECT * FROM rooms WHERE status != 'full' ORDER BY room_nu
       </div>
 
       <div class="form-group">
-        <label class="form-label">Home Address</label>
-        <textarea name="address" class="form-textarea" placeholder="Your permanent address..." rows="2"><?= htmlspecialchars($_POST['address'] ?? '') ?></textarea>
+  <label class="form-label">Diet Type *</label>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+    <div class="diet-reg-opt">
+      <input type="radio" name="diet_type" id="d_veg" value="veg" onclick="showNveg(false)" required>
+      <label for="d_veg">🥦 Veg</label>
+    </div>
+    <div class="diet-reg-opt">
+      <input type="radio" name="diet_type" id="d_nonveg" value="non_veg" onclick="showNveg(true)">
+      <label for="d_nonveg">🍗 Non-Veg</label>
+    </div>
+    <div class="diet-reg-opt">
+      <input type="radio" name="diet_type" id="d_vegan" value="vegan" onclick="showNveg(false)">
+      <label for="d_vegan">🌱 Vegan</label>
+    </div>
+    <div class="diet-reg-opt">
+      <input type="radio" name="diet_type" id="d_any" value="any" checked onclick="showNveg(false)">
+      <label for="d_any">🍽️ No Preference</label>
+    </div>
+  </div>
+</div>
+
+<div id="nveg_prefs_reg" style="display:none;" class="form-group">
+  <label class="form-label">Non-Veg Preferences (select what you eat)</label>
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; margin-top:4px;">
+    <div class="nveg-reg-opt">
+      <input type="checkbox" name="non_veg_preference[]" id="nv_chicken" value="chicken">
+      <label for="nv_chicken">🍗 Chicken</label>
+    </div>
+    <div class="nveg-reg-opt">
+      <input type="checkbox" name="non_veg_preference[]" id="nv_mutton" value="mutton">
+      <label for="nv_mutton">🍖 Mutton</label>
+    </div>
+    <div class="nveg-reg-opt">
+      <input type="checkbox" name="non_veg_preference[]" id="nv_fish" value="fish">
+      <label for="nv_fish">🐟 Fish</label>
+    </div>
+    <div class="nveg-reg-opt">
+      <input type="checkbox" name="non_veg_preference[]" id="nv_egg" value="egg">
+      <label for="nv_egg">🥚 Egg</label>
+    </div>
+    <div class="nveg-reg-opt">
+      <input type="checkbox" name="non_veg_preference[]" id="nv_all" value="all">
+      <label for="nv_all">🍽️ All Types</label>
+    </div>
+  </div>
+</div>
+
+      <div class="form-group">
+        <label class="form-label">Home Address *</label>
+        <textarea name="address" class="form-textarea" placeholder="Your permanent address..." rows="2" required><?= htmlspecialchars($_POST['address'] ?? '') ?></textarea>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Emergency Contact</label>
-        <input type="tel" name="emergency_contact" class="form-input" placeholder="Parent / Guardian phone" value="<?= htmlspecialchars($_POST['emergency_contact'] ?? '') ?>">
-      </div>
-
+  <label class="form-label">Emergency Contact *</label>
+  <input type="tel" name="emergency_contact" class="form-input" placeholder="Parent / Guardian phone" value="<?= htmlspecialchars($_POST['emergency_contact'] ?? '') ?>" required>
+</div>
       <div class="form-grid-2">
         <div class="form-group">
           <label class="form-label">Password *</label>
@@ -175,8 +255,15 @@ $rooms = $db->query("SELECT * FROM rooms WHERE status != 'full' ORDER BY room_nu
     </div>
   </div>
 </div>
+<script>
+function showNveg(show) {
+  document.getElementById('nveg_prefs_reg').style.display = show ? 'block' : 'none';
+}
+document.getElementById('d_nonveg').addEventListener('click', function(){ showNveg(true); });
+</script>
 
 <script>
+
 document.getElementById('registerForm').addEventListener('submit', function(e) {
     const email = document.querySelector('input[name="email"]').value.trim();
     const studentId = document.querySelector('input[name="student_id"]').value.trim().toUpperCase();
