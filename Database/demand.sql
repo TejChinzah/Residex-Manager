@@ -5,7 +5,6 @@ ALTER TABLE users
   ADD COLUMN group_tag VARCHAR(100) DEFAULT NULL AFTER non_veg_preference,
   ADD COLUMN floor_number INT DEFAULT NULL AFTER group_tag;
 
--- Payment Groups table
 CREATE TABLE IF NOT EXISTS payment_groups (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -17,7 +16,6 @@ CREATE TABLE IF NOT EXISTS payment_groups (
     FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Bulk demand batches (one batch = one bulk demand sent to many)
 CREATE TABLE IF NOT EXISTS demand_batches (
     id INT AUTO_INCREMENT PRIMARY KEY,
     batch_ref VARCHAR(30) NOT NULL UNIQUE,
@@ -35,7 +33,6 @@ CREATE TABLE IF NOT EXISTS demand_batches (
     FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Add batch_id column to payment_demands
 ALTER TABLE payment_demands
   ADD COLUMN batch_id INT DEFAULT NULL AFTER id,
   ADD FOREIGN KEY (batch_id) REFERENCES demand_batches(id) ON DELETE SET NULL;

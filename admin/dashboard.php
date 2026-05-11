@@ -407,7 +407,7 @@ function statusBadge($s) {
     <span class="dot">&#9679;</span>
     <span>Designed &amp; Developed with</span>
     <span class="heart">&#9829;</span>
-    <span>by <span class="dev-name">Tej Chinzah</span></span>
+    <span>by <span class="dev-name">Shit Happens Inc.</span></span>
   </div>
 </footer>
 </body>

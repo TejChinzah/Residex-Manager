@@ -1,7 +1,6 @@
 CREATE DATABASE IF NOT EXISTS hostel;
 USE hostel;
 
--- Rooms Table
 CREATE TABLE rooms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     room_number VARCHAR(10) NOT NULL UNIQUE,
@@ -13,7 +12,6 @@ CREATE TABLE rooms (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Users Table
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
@@ -33,7 +31,6 @@ CREATE TABLE users (
     FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE SET NULL
 );
 
--- Complaints Table
 CREATE TABLE complaints (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -50,7 +47,6 @@ CREATE TABLE complaints (
     FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
 );
 
--- Announcements Table
 CREATE TABLE announcements (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
@@ -70,7 +66,6 @@ CREATE TABLE admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Payments Table (Rent tracking) #This is To be Implemented Later
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -84,7 +79,6 @@ CREATE TABLE payments (
 );
 
 
--- Insert Admin
 INSERT INTO admins (username, email, password, full_name) VALUES
 ('admin', 'admin@residex.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Tej Chinzah');
 -- Default admin password: ********
@@ -95,15 +89,15 @@ INSERT INTO rooms (room_number, room_type, floor, capacity) VALUES
 ('1', 'double', 1, 2), ('2', 'triple', 1, 3), ('3', 'double', 1, 2),
 ('4', 'triple', 1, 3), ('5', 'double', 1, 2), ('6', 'triple', 1, 3),
 ('7', 'double', 1, 2), ('8', 'triple', 1, 3),
--- Floor 2: Rooms 09-16
+-- Floor 2: First Floor Rooms 09-16
 ('9', 'double', 2, 2), ('10', 'triple', 2, 3), ('11', 'double', 2, 2),
 ('12', 'triple', 2, 3), ('13', 'double', 2, 2), ('14', 'triple', 2, 3),
 ('15', 'double', 2, 2), ('16', 'triple', 2, 3),
--- Floor 3: Rooms 17-24
+-- Floor 3: Ground Floor Rooms 17-24
 ('17', 'double', 3, 2), ('18', 'triple', 3, 3), ('19', 'double', 3, 2),
 ('20', 'triple', 3, 3), ('21', 'double', 3, 2), ('22', 'triple', 3, 3),
 ('23', 'double', 3, 2), ('24', 'triple', 3, 3),
--- Floor 4: Rooms 25-30
+-- Floor 4: Basement Rooms 25-30
 ('25', 'double', 4, 2), ('26', 'triple', 4, 3), ('27', 'double', 4, 2),
 ('28', 'triple', 4, 3), ('29', 'double', 4, 2), ('30', 'triple', 4, 3);
 
