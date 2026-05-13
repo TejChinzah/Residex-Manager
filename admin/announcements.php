@@ -125,7 +125,7 @@ $anns = $db->query("SELECT * FROM announcements ORDER BY created_at DESC");
     <span>&copy; <?php echo date("Y"); ?> Residex Manager</span>
     <span class="dot">&#9679;</span>
     <span>Designed &amp; Developed</span>
-    <span>by <span class="dev-name">Shit Happens Inc.</span></span>
+    <span>by <span class="dev-name">   Shit Happens Inc.</span></span>
     <span class="heart">&#9829;</span>
   </div>
 </footer>
